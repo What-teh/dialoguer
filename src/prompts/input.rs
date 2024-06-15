@@ -1,6 +1,7 @@
 use std::{
     cmp::Ordering,
-    io, iter,
+    io::{self, Write},
+    iter,
     str::FromStr,
     sync::{Arc, Mutex},
 };
@@ -314,6 +315,8 @@ where
 
             let mut chars: Vec<char> = Vec::new();
             let mut position = 0;
+            #[cfg(feature = "completion")]
+            let mut is_suggest = false;
             #[cfg(feature = "history")]
             let mut hist_pos = 0;
 
@@ -325,7 +328,16 @@ where
             term.flush()?;
 
             loop {
-                match term.read_key()? {
+                let key = term.read_key()?;
+                #[cfg(feature = "completion")]
+                if is_suggest && !(key == Key::ArrowRight || key == Key::Tab) {
+                    term.clear_line()?;
+                    term.move_cursor_up(1)?;
+                    term.move_cursor_right(chars.len() + prompt_len)?;
+                    term.flush()?;
+                    is_suggest = false;
+                }
+                match key {
                     Key::Backspace if position > 0 => {
                         position -= 1;
                         chars.remove(position);
@@ -476,15 +488,22 @@ where
                         if let Some(completion) = &self.completion {
                             let input: String = chars.clone().into_iter().collect();
                             if let Some(x) = completion.get(&input) {
-                                term.clear_chars(chars.len())?;
-                                chars.clear();
-                                position = 0;
-                                for ch in x.chars() {
-                                    chars.insert(position, ch);
-                                    position += 1;
+                                if x.len() == 1 {
+                                    let x = x[0];
+                                    term.clear_chars(chars.len())?;
+                                    chars.clear();
+                                    position = 0;
+                                    for ch in x.chars() {
+                                        chars.insert(position, ch);
+                                        position += 1;
+                                    }
+                                    term.write_str(&x)?;
+                                    term.flush()?;
+                                } else if !is_suggest {
+                                    print!("\n{}", x.join(" "));
+                                    std::io::stdout().flush()?;
+                                    is_suggest = true;
                                 }
-                                term.write_str(&x)?;
-                                term.flush()?;
                             }
                         }
                     }

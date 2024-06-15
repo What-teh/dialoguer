@@ -18,7 +18,7 @@ pub trait Theme {
     /// Formats a prompt.
     #[inline]
     fn format_prompt(&self, f: &mut dyn fmt::Write, prompt: &str) -> fmt::Result {
-        write!(f, "{}:", prompt)
+        write!(f, "{}", prompt)
     }
 
     /// Formats out an error.
@@ -76,9 +76,9 @@ pub trait Theme {
         default: Option<&str>,
     ) -> fmt::Result {
         match default {
-            Some(default) if prompt.is_empty() => write!(f, "[{}]: ", default),
-            Some(default) => write!(f, "{} [{}]: ", prompt, default),
-            None => write!(f, "{}: ", prompt),
+            Some(default) if prompt.is_empty() => write!(f, "[{}] ", default),
+            Some(default) => write!(f, "{} [{}] ", prompt, default),
+            None => write!(f, "{} ", prompt),
         }
     }
 
@@ -90,7 +90,7 @@ pub trait Theme {
         prompt: &str,
         sel: &str,
     ) -> fmt::Result {
-        write!(f, "{}: {}", prompt, sel)
+        write!(f, "{} {}", prompt, sel)
     }
 
     /// Formats a password prompt.
@@ -147,7 +147,7 @@ pub trait Theme {
         prompt: &str,
         selections: &[&str],
     ) -> fmt::Result {
-        write!(f, "{}: ", prompt)?;
+        write!(f, "{} ", prompt)?;
         for (idx, sel) in selections.iter().enumerate() {
             write!(f, "{}{}", if idx == 0 { "" } else { ", " }, sel)?;
         }
